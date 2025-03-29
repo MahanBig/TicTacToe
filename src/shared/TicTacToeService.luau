@@ -1,9 +1,8 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = {}
-Shared.__index = Shared
-
 local Private = {}
+Shared.__index = Shared
 
 local AI_PLAYER = "O"
 local HUMAN_PLAYER = "X"
@@ -81,7 +80,11 @@ function Private.checkWin(board, player)
 end
 
 function Private.getCurrentBoardState(boardModel)
-	local boardTable = { { "", "", "" }, { "", "", "" }, { "", "", "" } }
+	local boardTable = { 
+		{ "", "", "" },
+		{ "", "", "" },
+		{ "", "", "" } 
+	}
 	for row = 1, 3 do
 		for col = 1, 3 do
 			local button = Private.getButton(boardModel, row, col)
@@ -102,6 +105,7 @@ function Private.getCurrentBoardState(boardModel)
 			end
 		end
 	end
+	print(boardTable)
 	return boardTable
 end
 
@@ -124,9 +128,9 @@ function Private.checkTableWin(boardTable, player)
 end
 
 function Private.isTableDraw(boardTable)
-	for r = 1, 3 do
-		for c = 1, 3 do
-			if boardTable[r][c] == EMPTY_SLOT then
+	for row = 1, 3 do
+		for column = 1, 3 do
+			if boardTable[row][column] == EMPTY_SLOT then
 				return false
 			end
 		end
@@ -358,7 +362,6 @@ function Private.InitializeBoard(self)
 				stateValue.Parent = button
 			end
 			stateValue.Value = EMPTY_SLOT
-
 			local clickDetector = button:FindFirstChildOfClass("ClickDetector")
 			if not clickDetector then
 				clickDetector = Instance.new("ClickDetector")

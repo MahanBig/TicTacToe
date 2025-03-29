@@ -1,54 +1,26 @@
---!strict
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
--- Define the type for the game instance object
-export type TicTacToeGame = {
-	board: Model?, -- Can be nil after destroy
-	gameOver: boolean,
-	movesMade: number,
-	playerX: Player?, -- Can be nil before game starts or after destroy
-	connections: { RBXScriptConnection }, -- A table holding event connections
-	xModelReference: Model?, -- Can be nil after destroy
-	oModelReference: Model?, -- Can be nil after destroy
-	onButtonChanged: BindableEvent,
-	onGameEnd: BindableEvent,
-
-	-- Methods associated with this type (implemented below on the Shared table)
-	init: (self: TicTacToeGame) -> (),
-	destroy: (self: TicTacToeGame) -> (),
-}
-
 local Shared = {}
-Shared.__index = Shared -- Instances created will use Shared for methods
+Shared.__index = Shared
 
 local Private = {}
 
--- Constants for AI and players
 local AI_PLAYER = "O"
 local HUMAN_PLAYER = "X"
 local EMPTY_SLOT = ""
 
--- Constants for Minimax scores
 local SCORE_AI_WIN = 10
 local SCORE_HUMAN_WIN = -10
 local SCORE_DRAW = 0
 
--- Name to identify placed visual models for easy cleanup
 local PLACED_MODEL_NAME = "TicTacToeVisual"
 
--- ==================================
---      HELPER FUNCTIONS START
--- ==================================
-
--- --- Visual Model Placement ---
--- (No changes needed in these helpers)
-
-function Private.placeVisualModel(button: BasePart, modelToClone: Model?)
+function Private.placeVisualModel(button, modelToClone)
 	if not modelToClone then
 		warn("Attempted to place visual model, but model reference was nil.")
 		return
 	end
-	local visualModel = modelToClone:Clone() :: Model
+	local visualModel = modelToClone:Clone()
 	visualModel.Name = PLACED_MODEL_NAME
 	if not visualModel.PrimaryPart then
 		warn("Visual model", modelToClone.Name, "is missing a PrimaryPart. Cannot accurately position.")
@@ -56,24 +28,21 @@ function Private.placeVisualModel(button: BasePart, modelToClone: Model?)
 		return
 	end
 	local buttonSize = button.Size
-	local modelPrimaryPart = visualModel.PrimaryPart :: BasePart
+	local modelPrimaryPart = visualModel.PrimaryPart
 	local modelOffsetY = modelPrimaryPart.Size.Y / 2
 	local targetCFrame = button.CFrame * CFrame.new(0, (buttonSize.Y / 2) + modelOffsetY + 0.1, 0)
 	visualModel:PivotTo(targetCFrame)
 	visualModel.Parent = button
 end
 
-function Private.removeVisualModel(button: BasePart)
+function Private.removeVisualModel(button)
 	local existingVisual = button:FindFirstChild(PLACED_MODEL_NAME)
 	if existingVisual and existingVisual:IsA("Model") then
 		existingVisual:Destroy()
 	end
 end
 
--- --- Board Interaction ---
--- (No changes needed in these helpers)
-
-function Private.getButton(board: Model, row: number, col: number): BasePart?
+function Private.getButton(board, row, col)
 	for _, button in ipairs(board:GetChildren()) do
 		if button:IsA("BasePart") and button:GetAttribute("Row") == row and button:GetAttribute("Column") == col then
 			return button
@@ -83,7 +52,7 @@ function Private.getButton(board: Model, row: number, col: number): BasePart?
 	return nil
 end
 
-function Private.checkWin(board: Model, player: string): boolean
+function Private.checkWin(board, player)
 	local winPatterns = {
 		{ { 1, 1 }, { 1, 2 }, { 1, 3 } },
 		{ { 2, 1 }, { 2, 2 }, { 2, 3 } },
@@ -98,7 +67,7 @@ function Private.checkWin(board: Model, player: string): boolean
 		local win = true
 		for _, pos in ipairs(pattern) do
 			local button = Private.getButton(board, pos[1], pos[2])
-			local stateValue = button and button:FindFirstChild("State") :: StringValue?
+			local stateValue = button and button:FindFirstChild("State")
 			if not stateValue or stateValue.Value ~= player then
 				win = false
 				break
@@ -111,16 +80,13 @@ function Private.checkWin(board: Model, player: string): boolean
 	return false
 end
 
--- --- Board State Conversion for AI ---
--- (No changes needed in these helpers)
-
-function Private.getCurrentBoardState(boardModel: Model): { { string } }
+function Private.getCurrentBoardState(boardModel)
 	local boardTable = { { "", "", "" }, { "", "", "" }, { "", "", "" } }
 	for row = 1, 3 do
 		for col = 1, 3 do
 			local button = Private.getButton(boardModel, row, col)
 			if button then
-				local stateValue = button:FindFirstChild("State") :: StringValue?
+				local stateValue = button:FindFirstChild("State")
 				if stateValue and stateValue.Value ~= EMPTY_SLOT then
 					boardTable[row][col] = stateValue.Value
 				end
@@ -139,12 +105,7 @@ function Private.getCurrentBoardState(boardModel: Model): { { string } }
 	return boardTable
 end
 
--- ==================================
---      MINIMAX AI LOGIC START
--- (No changes needed in these helpers)
--- ==================================
-
-function Private.checkTableWin(boardTable: { { string } }, player: string): boolean
+function Private.checkTableWin(boardTable, player)
 	for i = 1, 3 do
 		if boardTable[i][1] == player and boardTable[i][2] == player and boardTable[i][3] == player then
 			return true
@@ -162,7 +123,7 @@ function Private.checkTableWin(boardTable: { { string } }, player: string): bool
 	return false
 end
 
-function Private.isTableDraw(boardTable: { { string } }): boolean
+function Private.isTableDraw(boardTable)
 	for r = 1, 3 do
 		for c = 1, 3 do
 			if boardTable[r][c] == EMPTY_SLOT then
@@ -173,7 +134,7 @@ function Private.isTableDraw(boardTable: { { string } }): boolean
 	return not Private.checkTableWin(boardTable, AI_PLAYER) and not Private.checkTableWin(boardTable, HUMAN_PLAYER)
 end
 
-function Private.evaluateBoard(boardTable: { { string } }): number?
+function Private.evaluateBoard(boardTable)
 	if Private.checkTableWin(boardTable, AI_PLAYER) then
 		return SCORE_AI_WIN
 	elseif Private.checkTableWin(boardTable, HUMAN_PLAYER) then
@@ -185,7 +146,7 @@ function Private.evaluateBoard(boardTable: { { string } }): number?
 	end
 end
 
-function Private.getAvailableMoves(boardTable: { { string } }): { { row: number, col: number } }
+function Private.getAvailableMoves(boardTable)
 	local moves = {}
 	for r = 1, 3 do
 		for c = 1, 3 do
@@ -197,7 +158,7 @@ function Private.getAvailableMoves(boardTable: { { string } }): { { row: number,
 	return moves
 end
 
-function Private.minimax(boardTable: { { string } }, depth: number, isMaximizing: boolean): number
+function Private.minimax(boardTable, depth, isMaximizing)
 	local score = Private.evaluateBoard(boardTable)
 	if score ~= nil then
 		return score
@@ -218,7 +179,7 @@ function Private.minimax(boardTable: { { string } }, depth: number, isMaximizing
 	return bestScore
 end
 
-function Private.findBestMove(boardModel: Model): { row: number, col: number }?
+function Private.findBestMove(boardModel)
 	local boardTable = Private.getCurrentBoardState(boardModel)
 	local bestScore = -math.huge
 	local bestMove = nil
@@ -242,7 +203,7 @@ function Private.findBestMove(boardModel: Model): { row: number, col: number }?
 	return bestMove
 end
 
-function Private.getAIMove(boardModel: Model): BasePart?
+function Private.getAIMove(boardModel)
 	print("AI is thinking for board:", boardModel:GetFullName())
 	local bestMoveCoords = Private.findBestMove(boardModel)
 	if bestMoveCoords then
@@ -254,13 +215,7 @@ function Private.getAIMove(boardModel: Model): BasePart?
 	end
 end
 
--- ==================================
---      GAME LOGIC START
--- ==================================
-
---[[* Handles clicks on the board buttons during the game *]]
--- Corrected type annotation for 'self'
-function Private.onButtonClick(self: TicTacToeGame, button: BasePart, playerWhoClicked: Player)
+function Private.onButtonClick(self, button, playerWhoClicked)
 	if self.gameOver then
 		print("Game is over on board:", self.board and self.board:GetFullName() or "N/A")
 		return
@@ -276,7 +231,7 @@ function Private.onButtonClick(self: TicTacToeGame, button: BasePart, playerWhoC
 		return
 	end
 
-	local stateValue = button:FindFirstChild("State") :: StringValue?
+	local stateValue = button:FindFirstChild("State")
 	if not stateValue or stateValue.Value ~= EMPTY_SLOT then
 		print("Button already occupied or state missing on board:", self.board and self.board:GetFullName() or "N/A")
 		return
@@ -304,7 +259,7 @@ function Private.onButtonClick(self: TicTacToeGame, button: BasePart, playerWhoC
 	self.movesMade += 1
 	self.onButtonChanged:Fire(button, HUMAN_PLAYER, playerWhoClicked)
 
-	local boardToCheck = self.board :: Model
+	local boardToCheck = self.board
 	if Private.checkWin(boardToCheck, HUMAN_PLAYER) then
 		local winnerName = self.playerX and self.playerX.Name or "Player X"
 		print(winnerName .. " wins on board:", boardToCheck:GetFullName())
@@ -325,7 +280,7 @@ function Private.onButtonClick(self: TicTacToeGame, button: BasePart, playerWhoC
 
 	local aiMoveButton = Private.getAIMove(boardToCheck)
 	if aiMoveButton then
-		local aiStateValue = aiMoveButton:FindFirstChild("State") :: StringValue?
+		local aiStateValue = aiMoveButton:FindFirstChild("State")
 		if aiStateValue and aiStateValue.Value == EMPTY_SLOT then
 			aiStateValue.Value = AI_PLAYER
 			Private.placeVisualModel(aiMoveButton, self.oModelReference)
@@ -372,9 +327,7 @@ function Private.onButtonClick(self: TicTacToeGame, button: BasePart, playerWhoC
 	end
 end
 
---[[* Initializes or resets the board state and visuals *]]
--- Corrected type annotation for 'self'
-function Private.InitializeBoard(self: TicTacToeGame)
+function Private.InitializeBoard(self)
 	print("Initializing board:", self.board and self.board:GetFullName() or "N/A")
 	self.gameOver = false
 	self.movesMade = 0
@@ -398,7 +351,7 @@ function Private.InitializeBoard(self: TicTacToeGame)
 		if button:IsA("BasePart") and button:GetAttribute("Column") and button:GetAttribute("Row") then
 			Private.removeVisualModel(button)
 
-			local stateValue = button:FindFirstChild("State") :: StringValue?
+			local stateValue = button:FindFirstChild("State")
 			if not stateValue then
 				stateValue = Instance.new("StringValue")
 				stateValue.Name = "State"
@@ -413,8 +366,7 @@ function Private.InitializeBoard(self: TicTacToeGame)
 				clickDetector.MaxActivationDistance = 32
 			end
 
-			local conn = clickDetector.MouseClick:Connect(function(playerWhoClicked: Player)
-				-- Pass the correct game instance 'self' to the handler
+			local conn = clickDetector.MouseClick:Connect(function(playerWhoClicked)
 				Private.onButtonClick(self, button, playerWhoClicked)
 			end)
 			table.insert(self.connections, conn)
@@ -423,23 +375,16 @@ function Private.InitializeBoard(self: TicTacToeGame)
 	print("Board Initialized:", self.board:GetFullName(), "Waiting for first player...")
 end
 
--- ==================================
---      PUBLIC INTERFACE START
--- ==================================
+function Shared.new(board)
+	local self = setmetatable({}, Shared)
 
---[[* Creates a new TicTacToe game instance *]]
--- Corrected return type annotation
-function Shared.new(board: Model): TicTacToeGame
-	local self = setmetatable({}, Shared) :: any -- Cast to 'any' temporarily for setup
-
-	-- Initialize properties defined in TicTacToeGame type
 	self.board = board
 	self.gameOver = true
 	self.movesMade = 0
 	self.playerX = nil
 	self.connections = {}
-	self.xModelReference = ReplicatedStorage:FindFirstChild("XModel") :: Model?
-	self.oModelReference = ReplicatedStorage:FindFirstChild("OModel") :: Model?
+	self.xModelReference = ReplicatedStorage:FindFirstChild("XModel")
+	self.oModelReference = ReplicatedStorage:FindFirstChild("OModel")
 	self.onButtonChanged = Instance.new("BindableEvent")
 	self.onGameEnd = Instance.new("BindableEvent")
 
@@ -448,18 +393,13 @@ function Shared.new(board: Model): TicTacToeGame
 
 	print("TicTacToe Instance Created for board:", board:GetFullName())
 
-	-- Now that 'self' is fully formed according to the type, cast it back
-	return self :: TicTacToeGame
+	return self
 end
 
---[[* Initializes the game board for a new game *]]
--- Corrected type annotation for 'self'
 function Shared:init()
 	Private.InitializeBoard(self)
 end
 
---[[* Cleans up the game instance, disconnecting events and removing visuals *]]
--- Corrected type annotation for 'self'
 function Shared:destroy()
 	print("Destroying TicTacToe Instance for board:", self.board and self.board:GetFullName() or "N/A")
 	if self.board then
@@ -477,27 +417,22 @@ function Shared:destroy()
 		table.clear(self.connections)
 	end
 
-	-- Destroy BindableEvents specific to this instance
-	-- Check they exist before destroying as 'destroy' might be called multiple times
 	if self.onButtonChanged then
 		self.onButtonChanged:Destroy()
-		self.onButtonChanged = nil -- Help GC by removing reference
+		self.onButtonChanged = nil
 	end
 	if self.onGameEnd then
 		self.onGameEnd:Destroy()
-		self.onGameEnd = nil -- Help GC by removing reference
+		self.onGameEnd = nil
 	end
 
-	-- Clear references to allow garbage collection
 	self.board = nil
 	self.playerX = nil
 	self.xModelReference = nil
 	self.oModelReference = nil
 	self.connections = nil
-	-- Don't setmetatable(self, nil) here, it can cause issues if references still exist.
-	-- Let GC handle the table itself once all references are gone.
 
 	print("TicTacToe Instance Destroyed")
 end
 
-return Shared -- Return the table containing the public methods (new, init, destroy)
+return Shared

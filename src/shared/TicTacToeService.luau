@@ -168,9 +168,9 @@ function Private.minimax(boardTable, depth, isMaximizing)
 		return score
 	end
 	local availableMoves = Private.getAvailableMoves(boardTable)
-	local randomChance = math.random(1,10)
-	--local bestScore = isMaximizing and -math.huge or math.huge
-	local bestScore = randomChance <= 8 and -math.huge or math.huge
+	--local randomChance = math.random(1,10)
+	local bestScore = isMaximizing and -math.huge or math.huge
+	--local bestScore = randomChance <= 8 and -math.huge or math.huge
 	for _, move in ipairs(availableMoves) do
 		local player = isMaximizing and AI_PLAYER or HUMAN_PLAYER
 		boardTable[move.row][move.col] = player

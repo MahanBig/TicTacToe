@@ -88,3 +88,4 @@ function Shared.new(board: Model)
 
 	return self
 end
+return Shared

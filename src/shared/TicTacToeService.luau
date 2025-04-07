@@ -351,7 +351,7 @@ function Private.InitializeBoard(self)
 		return
 	end
 
-	for _, button in ipairs(self.board:GetChildren()) do
+	for _, button in self.board:GetChildren() do
 		if button:IsA("BasePart") and button:GetAttribute("Column") and button:GetAttribute("Row") then
 			Private.removeVisualModel(button)
 

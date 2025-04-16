@@ -9,7 +9,7 @@ function Private.GetMaxRowsAndCols(self)
 	local maxRows = 0
 	local maxCols = 0
 
-	for _, button in ipairs(self.board:GetChildren()) do
+	for _, button in self.board:GetChildren() do
 		if button:IsA("BasePart") and button:GetAttribute("Row") and button:GetAttribute("Column") then
 			local row = button:GetAttribute("Row")
 			local col = button:GetAttribute("Column")
@@ -54,16 +54,29 @@ function Private.MakePrompts(self)
 	table.insert(self.connections, TriggerConnection)
 end
 
+function Private.CreateGrid(self)
+	self.grid = {}
+	for r = 1 , self.maxRows do
+		self.grid[r] = {}
+		for c = 1 , self.maxCols do
+			self.grid[r][c] = 0
+		end
+	end
+end
+
 function Private.InitializeBoard(self)
 	print("Initializing board:", self.board:GetFullName())
-
+	
 	self.gameOver = false
 	self.movesMade = 0
 	self.player1 = nil
 	self.player2 = nil
+	self.maxRows, self.maxCols = Private.GetMaxRowsAndCols(self)
+	Private.CreateGrid(self)
+	print(self.grid)
 
 	if self.connections then
-		for _, conn in ipairs(self.connections) do
+		for _, conn in self.connections do
 			conn:Disconnect()
 		end
 		table.clear(self.connections)
@@ -87,5 +100,8 @@ function Shared.new(board: Model)
 	self.onGameEnd = Instance.new("BindableEvent")
 
 	return self
+end
+function Shared:init()
+	Private.InitializeBoard(self)
 end
 return Shared

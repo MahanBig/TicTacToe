@@ -17,7 +17,7 @@ for _, board in table do
 		tictactoe:init()
 	end)
 end
--- local Connect4Service = require(ReplicatedStorage.Shared.Connect4)
--- local connect4Board = game.Workspace.ConnectFour
--- local connect4 = Connect4Service.new(connect4Board)
--- connect4:init()
+local Connect4Service = require(ReplicatedStorage.Shared.Connect4)
+local connect4Board = game.Workspace.ConnectFour
+local connect4 = Connect4Service.new(connect4Board)
+connect4:init()

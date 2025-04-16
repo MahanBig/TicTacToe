@@ -375,7 +375,6 @@ function Private.InitializeBoard(self)
 			table.insert(self.connections, conn)
 		end
 	end
-	print("Board Initialized:", self.board:GetFullName(), "Waiting for first player...")
 end
 
 function Shared.new(board)
@@ -394,7 +393,6 @@ function Shared.new(board)
 	assert(self.oModelReference, "TicTacToeLogic: OModel not found in ReplicatedStorage!")
 	assert(self.xModelReference, "TicTacToeLogic: XModel not found in ReplicatedStorage!")
 
-	print("TicTacToe Instance Created for board:", board:GetFullName())
 
 	return self
 end

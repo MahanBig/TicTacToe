@@ -347,6 +347,7 @@ function Private.InitializeBoard(self)
 	end
 
 	if not self.board or not self.board:IsA("Model") then
+		print(self.board)
 		warn("InitializeBoard: self.board is nil or not a Model!")
 		return
 	end

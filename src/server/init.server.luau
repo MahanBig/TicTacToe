@@ -2,9 +2,9 @@ local CollectionService = game:GetService("CollectionService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local TicTacToeService = require(ReplicatedStorage.Shared.TicTacToeService)
-local table = CollectionService:GetTagged("Board")
+local tablee = CollectionService:GetTagged("Board")
 
-for _, board in table do
+for _, board in tablee do
 	local tictactoe = TicTacToeService.new(board)
 	tictactoe:init()
 	tictactoe.onGameEnd.Event:Connect(function(winner)
@@ -13,7 +13,7 @@ for _, board in table do
 			.. winnerName
 		)
 		task.wait(3)
-		tictactoe:destroy()
+		--tictactoe:destroy()
 		tictactoe:init()
 	end)
 end

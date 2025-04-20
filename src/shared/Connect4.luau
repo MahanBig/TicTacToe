@@ -4,9 +4,9 @@ local Private = {}
 Shared.__index = Shared
 
 -- Constants
-local DEFAULT_COLOR = Color3.new(1, 1, 1)
-local PLAYER1_COLOR = Color3.new(1, 0.0, 0.0)
-local PLAYER2_COLOR = Color3.new(1, 0.949019, 0.509803)
+local DEFAULT_COLOR = Color3.fromRGB(255, 255, 255)
+local PLAYER1_COLOR = Color3.fromRGB(255, 0, 0)
+local PLAYER2_COLOR = Color3.fromRGB(255, 208, 0)
 
 -- Private functions
 
@@ -96,7 +96,8 @@ function Private.CheckDirection(self, row, col, dRow, dCol, playerNum)
 	local count = 1
 
 	for direction = -1, 1, 2 do
-		local r, c = row + direction * dRow, col + direction * dCol
+		local r = row + direction * dRow
+		local c = col + direction * dCol
 		while r >= 1 and r <= self.maxRows and c >= 1 and c <= self.maxCols and self.grid[r][c] == playerNum do
 			count += 1
 			r += direction * dRow
@@ -114,19 +115,7 @@ function Private.CheckWin(self, row, col, playerNum)
 		or Private.CheckDirection(self, row, col, 1, -1, playerNum) -- Diagonal /
 end
 
-function Private.StartGame(self)
-	Private.CreateGrid(self)
-
-	for _, part in self.board:GetChildren() do
-		if part:IsA("BasePart") then
-			part.Color = DEFAULT_COLOR
-		end
-	end
-
-	self.movesMade = 0
-	self.gameOver = false
-	self.currentPlayer = self.player1
-
+function Private.AddInput(self)
 	for _, part in self.board:GetChildren() do
 		if part:IsA("BasePart") then
 			local existingCD = part:FindFirstChildOfClass("ClickDetector")
@@ -148,6 +137,22 @@ function Private.StartGame(self)
 			table.insert(self.connections, connection)
 		end
 	end
+end
+
+function Private.StartGame(self)
+	Private.CreateGrid(self)
+
+	for _, part in self.board:GetChildren() do
+		if part:IsA("BasePart") then
+			part.Color = DEFAULT_COLOR
+		end
+	end
+
+	self.movesMade = 0
+	self.gameOver = false
+	self.currentPlayer = self.player1
+
+	Private.AddInput(self)
 
 	print("Game started. " .. self.currentPlayer.Name .. "'s turn.")
 end
@@ -282,5 +287,17 @@ function Shared.new(board: Model)
 end
 function Shared:init()
 	Private.InitializeBoard(self)
+end
+
+function Shared:destroy()
+	for _, connection in self.connections do
+		connection:Disconnect()
+	end
+	table.clear(self.connections)
+
+	self.gameOver = false
+	self.movesMade = 0
+	self.player1 = nil
+	self.player2 = nil
 end
 return Shared
